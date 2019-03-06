@@ -1,0 +1,24 @@
+- kind: Deployment
+  plural: deployments
+  endpoint: apis/apps/v1
+  composition: [ReplicaSet]
+- kind: ReplicaSet
+  plural: replicasets
+  endpoint: apis/extensions/v1beta1
+  composition: [Pod]
+- kind: Service
+  plural: services
+  endpoint: api/v1
+  composition: []
+- kind: Pod
+  plural: pods
+  endpoint: api/v1
+  composition: []
+- kind: ConfigMap
+  plural: configmaps
+  endpoint: api/v1
+  composition: []
+- kind: Postgres
+  plural: postgreses
+  endpoint: apis/postgrescontroller.kubeplus/v1
+  composition: [Pod, Service]
