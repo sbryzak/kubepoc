@@ -14,3 +14,6 @@ kubectl delete -f artifacts/example/auth-reader.yaml -n kube-system
 kubectl delete -f artifacts/example/apiservice.yaml
 kubectl delete -f artifacts/example/grant-cluster-admin.yaml
 
+kubectl delete -f artifacts/example/service.yaml -n kubepoc
+
+kubectl delete -f artifacts/example/ns.yaml
