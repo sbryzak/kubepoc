@@ -14,5 +14,5 @@
 
 FROM fedora
 RUN mkdir -p /tmp/
-ADD poc-apiserver /
-ENTRYPOINT ["/poc-apiserver"]
+ADD kubepoc-apiserver /
+ENTRYPOINT ["/kubepoc-apiserver"]
