@@ -1,13 +1,13 @@
 apiVersion: apiregistration.k8s.io/v1beta1
 kind: APIService
 metadata:
-  name: v1.kubeprovenance.cloudark.io
+  name: v1.kubepoc.bryzak.com
 spec:
   insecureSkipTLSVerify: true
-  group: kubeprovenance.cloudark.io
+  group: kubepoc.bryzak.com
   groupPriorityMinimum: 1000
   versionPriority: 15
   service:
     name: api
-    namespace: provenance
+    namespace: kubepoc
   version: v1

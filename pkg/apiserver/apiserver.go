@@ -2,7 +2,6 @@ package apiserver
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/emicklei/go-restful"
@@ -37,16 +36,8 @@ func init() {
 
 	// Setting VersionPriority is critical in the InstallAPIGroup call (done in New())
 	utilruntime.Must(Scheme.SetVersionPriority(SchemeGroupVersion))
-
-	// TODO(devdattakulkarni) -- Following comments coming from sample-apiserver.
-	// Leaving them for now.
-	// we need to add the options to empty v1
-	// TODO fix the server code to avoid this
 	metav1.AddToGroupVersion(Scheme, schema.GroupVersion{Version: GroupVersion})
 
-	// TODO(devdattakulkarni) -- Following comments coming from sample-apiserver.
-	// Leaving them for now.
-	// TODO: keep the generic API server from wanting this
 	unversioned := schema.GroupVersion{Group: "", Version: GroupVersion}
 	Scheme.AddUnversionedTypes(unversioned,
 		&metav1.Status{},
@@ -55,9 +46,6 @@ func init() {
 		&metav1.APIGroup{},
 		&metav1.APIResourceList{},
 	)
-
-	// Start collecting provenance
-	go provenance.CollectProvenance()
 }
 
 type ExtraConfig struct {
@@ -69,8 +57,8 @@ type Config struct {
 	ExtraConfig   ExtraConfig
 }
 
-// ProvenanceServer contains state for a Kubernetes cluster master/api server.
-type ProvenanceServer struct {
+// PocServer contains state for a Kubernetes cluster master/api server.
+type PocServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 }
 
@@ -100,13 +88,13 @@ func (cfg *Config) Complete() CompletedConfig {
 }
 
 // New returns a new instance of ProvenanceServer from the given config.
-func (c completedConfig) New() (*ProvenanceServer, error) {
-	genericServer, err := c.GenericConfig.New("kube provenance server", genericapiserver.NewEmptyDelegate())
+func (c completedConfig) New() (*PocServer, error) {
+	genericServer, err := c.GenericConfig.New("kube proof of concept server", genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return nil, err
 	}
 
-	s := &ProvenanceServer{
+	s := &PocServer{
 		GenericAPIServer: genericServer,
 	}
 
@@ -116,41 +104,26 @@ func (c completedConfig) New() (*ProvenanceServer, error) {
 		return nil, err
 	}
 
-	installCompositionProvenanceWebService(s)
+	installCompositionPocWebService(s)
 
 	return s, nil
 }
 
-func installCompositionProvenanceWebService(provenanceServer *ProvenanceServer) {
-	for _, resourceKindPlural := range provenance.KindPluralMap {
-		namespaceToUse := provenance.Namespace
-		path := "/apis/" + GroupName + "/" + GroupVersion + "/namespaces/"
-		path = path + namespaceToUse + "/" + strings.ToLower(resourceKindPlural)
-		fmt.Println("WS PATH:" + path)
+func installCompositionPocWebService(pocServer *PocServer) {
+	namespaceToUse := "default"
+	path := "/apis/" + GroupName + "/" + GroupVersion + "/namespaces/"
+	path = path + namespaceToUse + "/" //+ strings.ToLower(resourceKindPlural)
+	fmt.Println("WS PATH:" + path)
 
-		ws := getWebService()
-		ws.Path(path).
-			Consumes(restful.MIME_JSON, restful.MIME_XML).
-			Produces(restful.MIME_JSON, restful.MIME_XML)
-		getPath := "/{resource-id}/versions"
-		fmt.Println("Get Path:" + getPath)
-		ws.Route(ws.GET(getPath).To(getVersions))
+	ws := getWebService()
+	ws.Path(path).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON, restful.MIME_XML)
+	getPath := "/{resource-id}/test"
+	fmt.Println("Get Path:" + getPath)
+	ws.Route(ws.GET(getPath).To(getResponse))
 
-		historyPath := "/{resource-id}/spechistory"
-		fmt.Println("History Path:" + historyPath)
-		ws.Route(ws.GET(historyPath).To(getHistory))
-
-		diffPath := "/{resource-id}/diff"
-		fmt.Println("Diff Path:" + diffPath)
-		ws.Route(ws.GET(diffPath).To(getDiff))
-
-		bisectPath := "/{resource-id}/bisect"
-		fmt.Println("Bisect Path:" + bisectPath)
-		ws.Route(ws.GET(bisectPath).To(bisect))
-
-		provenanceServer.GenericAPIServer.Handler.GoRestfulContainer.Add(ws)
-
-	}
+	pocServer.GenericAPIServer.Handler.GoRestfulContainer.Add(ws)
 	fmt.Println("Done registering.")
 }
 
@@ -163,146 +136,12 @@ func getWebService() *restful.WebService {
 	return ws
 }
 
-func getVersions(request *restful.Request, response *restful.Response) {
+func getResponse(request *restful.Request, response *restful.Response) {
 	resourceName := request.PathParameter("resource-id")
 	requestPath := request.Request.URL.Path
 	resourcePathSlice := strings.Split(requestPath, "/")
 	resourceKind := resourcePathSlice[6] // Kind is 7th element in the slice
-	provenanceInfo := "Resource Name:" + resourceName + " Resource Kind: " + resourceKind + "\n"
-	response.Write([]byte(provenanceInfo))
-	/*intendedProvObj := provenance.FindProvenanceObjectByName(resourceName, provenance.AllProvenanceObjects)
-
-	//TODO: Validate request based on the correct namespace and the correct plural type.
-	//I have the namespace/pluralkind datain my ProvenanceOfObject struct so it is easy to make these changes later
-	if intendedProvObj == nil {
-		s := fmt.Sprintf("Could not find any provenance history for resource name: %s", resourceName)
-		response.Write([]byte(s))
-	} else {
-		response.Write([]byte(intendedProvObj.ObjectFullHistory.GetVersions()))
-	}*/
+	responseString := "Resource Name:" + resourceName + " Resource Kind: " + resourceKind + "\n"
+	response.Write([]byte(responseString))
 }
 
-func getHistory(request *restful.Request, response *restful.Response) {
-	fmt.Println("Inside gethistory")
-	resourceName := request.PathParameter("resource-id")
-	requestPath := request.Request.URL.Path
-	resourcePathSlice := strings.Split(requestPath, "/")
-	resourceKind := resourcePathSlice[6] // Kind is 7th element in the slice
-
-	provenanceInfo := "Resource Name:" + resourceName + " Resource Kind:" + resourceKind + "\n"
-	response.Write([]byte(provenanceInfo))
-	intendedProvObj := provenance.FindProvenanceObjectByName(resourceName, provenance.AllProvenanceObjects)
-	//optional parameters
-	start := request.QueryParameter("start")
-	end := request.QueryParameter("end")
-
-	//TODO: Validate request based on the correct namespace and the correct plural type.
-	//I have the namespace/pluralkind datain my ProvenanceOfObject struct so it is easy to make these changes later
-	if intendedProvObj == nil {
-		s := fmt.Sprintf("Could not find any provenance history for resource name: %s", resourceName)
-		response.Write([]byte(s))
-	} else {
-		if start != "" && end != "" { //have both a start and an end
-			fmt.Printf("Start:%s", start)
-			fmt.Printf("End:%s", end)
-			startInt, err := strconv.Atoi(start)
-			if err != nil {
-				s := fmt.Sprintf("Could not parse start query parameter to int: %s", err.Error())
-				response.Write([]byte(s))
-				return
-			}
-			endInt, err := strconv.Atoi(end)
-			if err != nil {
-				s := fmt.Sprintf("Could not parse end query parameter to int: %s", err.Error())
-				response.Write([]byte(s))
-				return
-			}
-			fmt.Printf("Spec history starting with version %d and ending with version %d", startInt, endInt)
-			response.Write([]byte(intendedProvObj.ObjectFullHistory.SpecHistoryInterval(startInt, endInt)))
-		} else { //start and end
-			response.Write([]byte(intendedProvObj.ObjectFullHistory.SpecHistory()))
-		}
-	}
-
-}
-
-func bisect(request *restful.Request, response *restful.Response) {
-	fmt.Println("Inside bisect")
-	resourceName := request.PathParameter("resource-id")
-	requestPath := request.Request.URL.String()
-	// assuming that the last slash is where the query starts.
-	strs := strings.Split(requestPath, "/")
-	// apis/kubeprovenance.cloudark.io/v1/namespaces/default/postgreses/client25/bisect?field1=username&field2=password&value1=pallavi&value2=pass123
-	// field1=username&field2=password&value1=pallavi&value2=pass123
-	args := strings.Split(strs[len(strs)-1], "?")[1] //get rid of "bisect?""
-	argMap := make(map[string]string)
-	argsArray := strings.Split(args, "&")
-	for _, val := range argsArray {
-		fieldToValue := strings.Split(val, "=")
-		argMap[fieldToValue[0]] = fieldToValue[1]
-	}
-	// var provenanceInfo string
-	// provenanceInfo = "Resource Name:" + resourceName + " Resource Kind:" + resourceKind
-	// fmt.Println(provenanceInfo)
-
-	//Validate that there is ProvenanceHistory for the resource with name resourceName (PathParameter of the request)
-	/*intendedProvObj := provenance.FindProvenanceObjectByName(resourceName, provenance.AllProvenanceObjects)
-	if intendedProvObj == nil {
-		s := fmt.Sprintf("Could not find any provenance history for resource name: %s", resourceName)
-		response.Write([]byte(s))
-	} else {
-		response.Write([]byte(intendedProvObj.ObjectFullHistory.Bisect(argMap)))
-		response.Write([]byte(string("\n")))
-	}*/
-}
-
-func getDiff(request *restful.Request, response *restful.Response) {
-	fmt.Println("Inside getDiff")
-	resourceName := request.PathParameter("resource-id")
-	requestPath := request.Request.URL.Path
-	resourcePathSlice := strings.Split(requestPath, "/")
-	resourceKind := resourcePathSlice[6] // Kind is 7th element in the slice
-
-	fmt.Printf("Resource Name:%s, Resource Kind:%s", resourceName, resourceKind)
-	start := request.QueryParameter("start")
-	end := request.QueryParameter("end")
-	field := request.QueryParameter("field")
-	/*intendedProvObj := provenance.FindProvenanceObjectByName(resourceName, provenance.AllProvenanceObjects)
-	if intendedProvObj == nil {
-		s := fmt.Sprintf("Could not find any provenance history for resource name: %s", resourceName)
-		response.Write([]byte(s))
-		return
-	}*/
-
-	var diffInfo string
-	if start == "" || end == "" {
-		fmt.Printf("Start:%s", start)
-		fmt.Printf("End:%s", end)
-		diffInfo = "Start and end query parameters are missing\n"
-	} else {
-		fmt.Printf("Start:%s", start)
-		fmt.Printf("End:%s", end)
-		startInt, err := strconv.Atoi(start)
-
-		if err != nil {
-			s := fmt.Sprintf("Could not parse start query parameter to int: %s", err.Error())
-			response.Write([]byte(s))
-			return
-		}
-		endInt, err := strconv.Atoi(end)
-		if err != nil {
-			s := fmt.Sprintf("Could not parse end query parameter to int: %s", err.Error())
-			response.Write([]byte(s))
-			return
-		}
-
-		/*if field != "" {
-			fmt.Printf("Diff for Field requested. Field:%s", field)
-			diffInfo = intendedProvObj.ObjectFullHistory.FieldDiff(field, startInt, endInt)
-		} else {
-			fmt.Println("Diff for Full Spec requested.")
-			diffInfo = intendedProvObj.ObjectFullHistory.FullDiff(startInt, endInt)
-		}*/
-	}
-	response.Write([]byte(diffInfo))
-}

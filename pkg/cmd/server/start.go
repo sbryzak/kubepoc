@@ -15,29 +15,29 @@ import (
 
 const defaultEtcdPathPrefix = "/registry/kubepoc.bryzak.com"
 
-type ProvenanceServerOptions struct {
+type PocServerOptions struct {
 	RecommendedOptions *genericoptions.RecommendedOptions
 	StdOut             io.Writer
 	StdErr             io.Writer
 }
 
-func NewProvenanceServerOptions(out, errOut io.Writer) *ProvenanceServerOptions {
-	o := &ProvenanceServerOptions{
+func NewPocServerOptions(out, errOut io.Writer) *PocServerOptions {
+	o := &PocServerOptions{
 		RecommendedOptions: genericoptions.NewRecommendedOptions(defaultEtcdPathPrefix,
-			apiserver.Codecs.LegacyCodec(apiserver.SchemeGroupVersion)),
+			apiserver.Codecs.LegacyCodec(apiserver.SchemeGroupVersion), nil),
 		StdOut: out,
 		StdErr: errOut,
 	}
 	return o
 }
 
-// NewCommandStartProvenanceServer provides a CLI handler for 'start master' command
-// with a default ProvenanceServerOptions.
-func NewCommandStartProvenanceServer(defaults *ProvenanceServerOptions, stopCh <-chan struct{}) *cobra.Command {
+// NewCommandStartPocServer provides a CLI handler for 'start master' command
+// with a default PocServerOptions.
+func NewCommandStartPocServer(defaults *PocServerOptions, stopCh <-chan struct{}) *cobra.Command {
 	o := *defaults
 	cmd := &cobra.Command{
-		Short: "Launch Provenance API server",
-		Long:  "Launch Provenance API server",
+		Short: "Launch Poc API server",
+		Long:  "Launch Poc API server",
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(); err != nil {
 				return err
@@ -45,7 +45,7 @@ func NewCommandStartProvenanceServer(defaults *ProvenanceServerOptions, stopCh <
 			if err := o.Validate(args); err != nil {
 				return err
 			}
-			if err := o.RunProvenanceServer(stopCh); err != nil {
+			if err := o.RunPocServer(stopCh); err != nil {
 				return err
 			}
 			return nil
@@ -58,24 +58,24 @@ func NewCommandStartProvenanceServer(defaults *ProvenanceServerOptions, stopCh <
 	return cmd
 }
 
-func (o ProvenanceServerOptions) Validate(args []string) error {
+func (o PocServerOptions) Validate(args []string) error {
 	errors := []error{}
 	errors = append(errors, o.RecommendedOptions.Validate()...)
 	return utilerrors.NewAggregate(errors)
 }
 
-func (o *ProvenanceServerOptions) Complete() error {
+func (o *PocServerOptions) Complete() error {
 	return nil
 }
 
-func (o *ProvenanceServerOptions) Config() (*apiserver.Config, error) {
+func (o *PocServerOptions) Config() (*apiserver.Config, error) {
 	// TODO have a "real" external address
 	if err := o.RecommendedOptions.SecureServing.MaybeDefaultWithSelfSignedCerts("localhost", nil, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
 	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
-	if err := o.RecommendedOptions.ApplyTo(serverConfig, apiserver.Scheme); err != nil {
+	if err := o.RecommendedOptions.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +86,7 @@ func (o *ProvenanceServerOptions) Config() (*apiserver.Config, error) {
 	return config, nil
 }
 
-func (o ProvenanceServerOptions) RunProvenanceServer(stopCh <-chan struct{}) error {
+func (o PocServerOptions) RunPocServer(stopCh <-chan struct{}) error {
 	config, err := o.Config()
 	if err != nil {
 		return err

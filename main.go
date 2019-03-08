@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
+	"k8s.io/component-base/logs"
 	"os"
 
-	"github.com/golang/glog"
-
+	//"github.com/golang/glog"
 	server "github.com/sbryzak/kubepoc/pkg/cmd/server"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/util/logs"
+	//"k8s.io/apiserver/pkg/util/logs"
 )
 
 func main() {
@@ -16,10 +16,10 @@ func main() {
 	defer logs.FlushLogs()
 
 	stopCh := genericapiserver.SetupSignalHandler()
-	options := server.NewProvenanceServerOptions(os.Stdout, os.Stderr)
-	cmd := server.NewCommandStartProvenanceServer(options, stopCh)
+	options := server.NewPocServerOptions(os.Stdout, os.Stderr)
+	cmd := server.NewCommandStartPocServer(options, stopCh)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	if err := cmd.Execute(); err != nil {
-		glog.Fatal(err)
+		//glog.Fatal(err)
 	}
 }

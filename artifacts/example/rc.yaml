@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: kube-provenance-apiserver
-  namespace: provenance
+  name: kubepoc-apiserver
+  namespace: kubepoc
   labels:
     apiserver: "true"
 spec:
@@ -16,18 +16,18 @@ spec:
     spec:
       serviceAccountName: apiserver
       containers:
-      - name: kube-provenance-apiserver
-        image: kube-provenance-apiserver:latest
+      - name: kubepoc-apiserver
+        image: kubepoc-apiserver:latest
         imagePullPolicy: Never
-        command: [ "/kube-provenance-apiserver", "--etcd-servers=http://localhost:2379" ]
+        command: [ "/kubepoc-apiserver", "--etcd-servers=http://localhost:2379" ]
         volumeMounts:
         - name: kind-compositions-volume
-          mountPath: /etc/kubeprovenance
+          mountPath: /etc/kubepoc
         - mountPath: /tmp/kube-apiserver-audit.log
           name: audit-log
         env:
         - name: KIND_COMPOSITION_FILE
-          value: /etc/kubeprovenance/kind_compositions.yaml
+          value: /etc/kubepoc/kind_compositions.yaml
         - name: HOST_IP
           valueFrom:
             fieldRef:
