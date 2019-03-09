@@ -11,12 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/version"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/registry/rest"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
-const GroupName = "poc.bryzak.com"
+const GroupName = "kubepoc.bryzak.com"
 const GroupVersion = "v1"
 
 var (
@@ -99,11 +98,7 @@ func (c completedConfig) New() (*PocServer, error) {
 		GenericAPIServer: genericServer,
 	}
 
-	fmt.Println("calling NewDefaultAPIGroupInfo()")
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(GroupName, Scheme, metav1.ParameterCodec, Codecs)
-
-	v1storage := map[string]rest.Storage{}
-	apiGroupInfo.VersionedResourcesStorageMap["v1"] = v1storage
 
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
@@ -117,16 +112,14 @@ func (c completedConfig) New() (*PocServer, error) {
 func installCompositionPocWebService(pocServer *PocServer) {
 	namespaceToUse := "default"
 	path := "/apis/" + GroupName + "/" + GroupVersion + "/namespaces/"
-	path = path + namespaceToUse + "/" //+ strings.ToLower(resourceKindPlural)
+	path = path + namespaceToUse // + strings.ToLower(resourceKindPlural)
 	fmt.Println("WS PATH:" + path)
 
 	ws := getWebService()
-	fmt.Println("Called getWebService()")
 	ws.Path(path).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON, restful.MIME_XML)
-	fmt.Println("Called ws.Path()")
-	getPath := "/test"
+	getPath := "/{resource-id}/test"
 	fmt.Println("Get Path:" + getPath)
 	ws.Route(ws.GET(getPath).To(getResponse))
 
@@ -144,6 +137,7 @@ func getWebService() *restful.WebService {
 }
 
 func getResponse(request *restful.Request, response *restful.Response) {
+	fmt.Println("Handling request...")
 	resourceName := request.PathParameter("resource-id")
 	requestPath := request.Request.URL.Path
 	resourcePathSlice := strings.Split(requestPath, "/")
@@ -151,4 +145,3 @@ func getResponse(request *restful.Request, response *restful.Response) {
 	responseString := "Resource Name:" + resourceName + " Resource Kind: " + resourceKind + "\n"
 	response.Write([]byte(responseString))
 }
-
