@@ -5,9 +5,9 @@ import (
 	"k8s.io/component-base/logs"
 	"os"
 
-	//"github.com/golang/glog"
 	server "github.com/sbryzak/kubepoc/pkg/cmd/server"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	//"github.com/golang/glog"
 	//"k8s.io/apiserver/pkg/util/logs"
 )
 

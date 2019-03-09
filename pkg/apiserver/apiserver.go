@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/version"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
@@ -98,7 +99,11 @@ func (c completedConfig) New() (*PocServer, error) {
 		GenericAPIServer: genericServer,
 	}
 
+	fmt.Println("calling NewDefaultAPIGroupInfo()")
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(GroupName, Scheme, metav1.ParameterCodec, Codecs)
+
+	v1storage := map[string]rest.Storage{}
+	apiGroupInfo.VersionedResourcesStorageMap["v1"] = v1storage
 
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
@@ -116,10 +121,12 @@ func installCompositionPocWebService(pocServer *PocServer) {
 	fmt.Println("WS PATH:" + path)
 
 	ws := getWebService()
+	fmt.Println("Called getWebService()")
 	ws.Path(path).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON, restful.MIME_XML)
-	getPath := "/{resource-id}/test"
+	fmt.Println("Called ws.Path()")
+	getPath := "/test"
 	fmt.Println("Get Path:" + getPath)
 	ws.Route(ws.GET(getPath).To(getResponse))
 

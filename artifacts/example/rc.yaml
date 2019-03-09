@@ -18,7 +18,7 @@ spec:
       containers:
       - name: kubepoc-apiserver
         image: kubepoc-apiserver:latest
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         command: [ "/kubepoc-apiserver", "--etcd-servers=http://localhost:2379" ]
         volumeMounts:
         - name: kind-compositions-volume
