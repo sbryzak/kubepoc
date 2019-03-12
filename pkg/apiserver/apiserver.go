@@ -2,6 +2,8 @@ package apiserver
 
 import (
 	"fmt"
+	"github.com/MatousJobanek/build-environment-detector/detector"
+	"github.com/MatousJobanek/build-environment-detector/detector/git"
 	"strings"
 
 	"github.com/emicklei/go-restful"
@@ -119,9 +121,14 @@ func installCompositionPocWebService(pocServer *PocServer) {
 	ws.Path(path).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON, restful.MIME_XML)
-	getPath := "/{resource-id}/test"
-	fmt.Println("Get Path:" + getPath)
-	ws.Route(ws.GET(getPath).To(getResponse))
+
+	testPath := "/{resource-id}/test"
+	fmt.Println("Test Path:" + testPath)
+	ws.Route(ws.GET(testPath).To(testResponse))
+
+	detectPath := "/detect"
+	fmt.Println("Detect Path:" + detectPath)
+	ws.Route(ws.POST(detectPath).To(detectResponse))
 
 	pocServer.GenericAPIServer.Handler.GoRestfulContainer.Add(ws)
 	fmt.Println("Done registering.")
@@ -136,7 +143,7 @@ func getWebService() *restful.WebService {
 	return ws
 }
 
-func getResponse(request *restful.Request, response *restful.Response) {
+func testResponse(request *restful.Request, response *restful.Response) {
 	fmt.Println("Handling request...")
 	resourceName := request.PathParameter("resource-id")
 	requestPath := request.Request.URL.Path
@@ -144,4 +151,31 @@ func getResponse(request *restful.Request, response *restful.Response) {
 	resourceKind := resourcePathSlice[6] // Kind is 7th element in the slice
 	responseString := "Resource Name:" + resourceName + " Resource Kind: " + resourceKind + "\n"
 	response.Write([]byte(responseString))
+}
+
+func detectResponse(request *restful.Request, response *restful.Response) {
+	fmt.Println("Handling request...")
+
+	gitSource, err := request.BodyParameter("git-source")
+	if err != nil {
+		response.Write([]byte((err.Error())))
+	}
+
+	src := &git.Source{
+		URL:    gitSource,
+		Secret: git.NewUsernamePassword("anonymous", ""),
+	}
+
+	buildEnvStats, err := detector.DetectBuildEnvironments(src)
+	if err != nil {
+		response.Write([]byte((err.Error())))
+	}
+
+	if buildEnvStats != nil {
+		for _, lang := range buildEnvStats.SortedLanguages {
+			response.Write([]byte(lang))
+		}
+	} else {
+		response.Write([]byte("No languages detected"))
+	}
 }
