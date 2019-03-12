@@ -74,6 +74,10 @@ type CompletedConfig struct {
 	*completedConfig
 }
 
+type GitSource struct {
+	Source string
+}
+
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
 func (cfg *Config) Complete() CompletedConfig {
 	c := completedConfig{
@@ -156,13 +160,17 @@ func testResponse(request *restful.Request, response *restful.Response) {
 func detectResponse(request *restful.Request, response *restful.Response) {
 	fmt.Println("Handling request...")
 
-	gitSource, err := request.BodyParameter("git-source")
+	gitSource := &GitSource{}
+
+	err := request.ReadEntity(gitSource)
 	if err != nil {
 		response.Write([]byte((err.Error())))
 	}
 
+	fmt.Println("Detecting git source: " + gitSource.Source)
+
 	src := &git.Source{
-		URL:    gitSource,
+		URL:    gitSource.Source,
 		Secret: git.NewUsernamePassword("anonymous", ""),
 	}
 

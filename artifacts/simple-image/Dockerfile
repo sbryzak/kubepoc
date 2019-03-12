@@ -13,6 +13,7 @@
 # limitations under the License.
 
 FROM fedora
+RUN yum -y install git
 RUN mkdir -p /tmp/
 ADD kubepoc-apiserver /
 ENTRYPOINT ["/kubepoc-apiserver"]
