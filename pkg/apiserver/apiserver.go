@@ -181,7 +181,15 @@ func detectResponse(request *restful.Request, response *restful.Response) {
 
 	if buildEnvStats != nil {
 		for _, lang := range buildEnvStats.SortedLanguages {
+			response.Write([]byte("Language found: "))
 			response.Write([]byte(lang))
+			response.Write([]byte("\r\n"))
+		}
+
+		for _, tool := range buildEnvStats.DetectedBuildTools {
+			response.Write([]byte("Build tool found: "))
+			response.Write([]byte(fmt.Sprint(*tool)))
+			response.Write([]byte("\r\n"))
 		}
 	} else {
 		response.Write([]byte("No languages detected"))
