@@ -16,15 +16,5 @@ spec:
       - name: kubepoc
         image: getkubepoc:1
         imagePullPolicy: Never
-        volumeMounts:
-        - name: kind-compositions-volume
-          mountPath: /etc/kubepoc
-        env:
-        - name: KIND_COMPOSITION_FILE
-          value: /etc/kubepoc/kind_compositions.yaml
-      volumes:
-      - name: kind-compositions-volume
-        configMap:
-          name: kind-compositions-config-map
 
 

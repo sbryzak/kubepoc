@@ -1157,6 +1157,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/MatousJobanek/build-environment-detector/detector",
+    "github.com/MatousJobanek/build-environment-detector/detector/git",
     "github.com/emicklei/go-restful",
     "github.com/spf13/cobra",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
