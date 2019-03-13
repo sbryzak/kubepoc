@@ -116,9 +116,7 @@ func (c completedConfig) New() (*PocServer, error) {
 }
 
 func installCompositionPocWebService(pocServer *PocServer) {
-	namespaceToUse := "default"
-	path := "/apis/" + GroupName + "/" + GroupVersion + "/namespaces/"
-	path = path + namespaceToUse // + strings.ToLower(resourceKindPlural)
+	path := fmt.Sprintf("/apis/%s/%s/namespaces/{namespace}", GroupName, GroupVersion)
 	fmt.Println("WS PATH:" + path)
 
 	ws := getWebService()
